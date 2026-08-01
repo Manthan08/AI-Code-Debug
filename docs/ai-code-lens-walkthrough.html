@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Code Lens Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --deck: #0d1726;
+      --panel: #121f31;
+      --panel-2: #17263b;
+      --ink: #f5f8fc;
+      --muted: #b8c5d9;
+      --line: rgba(255, 255, 255, 0.15);
+      --accent: #54e6ad;
+      --accent-2: #67c7ff;
+      --warn: #ffd166;
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+      --radius: 20px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(84, 230, 173, 0.14), transparent 32%),
+        radial-gradient(circle at 82% 72%, rgba(103, 199, 255, 0.14), transparent 34%),
+        linear-gradient(135deg, #07111f, #0b1320 48%, #07111f);
+      color: var(--ink);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 22px;
+    }
+
+    .topbar,
+    .controls {
+      width: min(1280px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar {
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(7, 17, 31, 0.78);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand img {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+    }
+
+    .counter {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .stage {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .deck {
+      position: relative;
+      width: min(1280px, calc(100vw - 44px));
+      aspect-ratio: 16 / 9;
+      max-height: calc(100vh - 142px);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 28px;
+      background:
+        linear-gradient(120deg, rgba(84, 230, 173, 0.08), transparent 36%),
+        linear-gradient(310deg, rgba(103, 199, 255, 0.08), transparent 42%),
+        var(--deck);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .deck::before {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 28px;
+      padding: clamp(34px, 4.2vw, 58px);
+      opacity: 0;
+      transform: translateX(24px);
+    }
+
+    .slide.is-active {
+      display: grid;
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .slide.two {
+      grid-template-columns: minmax(0, 1.06fr) minmax(330px, 0.94fr);
+      align-items: center;
+    }
+
+    .slide.center {
+      place-items: center;
+      text-align: center;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+      align-content: center;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--accent);
+      font-size: clamp(15px, 1.45vw, 21px);
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      letter-spacing: 0;
+      line-height: 1.02;
+      text-wrap: balance;
+    }
+
+    h1 {
+      font-size: clamp(46px, 6vw, 78px);
+      max-width: 760px;
+    }
+
+    h2 {
+      font-size: clamp(36px, 4.2vw, 58px);
+      max-width: 900px;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 860px;
+      color: var(--muted);
+      font-size: clamp(21px, 2.2vw, 32px);
+      line-height: 1.22;
+      font-weight: 700;
+    }
+
+    .text {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(18px, 1.8vw, 25px);
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(23, 38, 59, 0.92), rgba(18, 31, 49, 0.92));
+      padding: clamp(20px, 2.2vw, 30px);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.26);
+    }
+
+    .preview {
+      display: grid;
+      gap: 16px;
+    }
+
+    .preview img {
+      width: 100%;
+      max-height: 340px;
+      object-fit: contain;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: #08111f;
+    }
+
+    .bullets,
+    .steps,
+    .cards {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .bullet,
+    .step,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.055);
+      padding: 17px 19px;
+      color: var(--ink);
+      font-size: clamp(19px, 1.9vw, 27px);
+      line-height: 1.18;
+      font-weight: 800;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      align-items: start;
+      gap: 14px;
+    }
+
+    .num {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #062217;
+      font-size: 20px;
+      font-weight: 950;
+    }
+
+    .meta {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: clamp(15px, 1.35vw, 20px);
+      line-height: 1.25;
+      font-weight: 650;
+    }
+
+    .diagram {
+      display: grid;
+      gap: 14px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .node {
+      min-height: 92px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: clamp(18px, 1.7vw, 25px);
+      line-height: 1.1;
+      font-weight: 900;
+    }
+
+    .arrow {
+      color: var(--accent);
+      font-size: 30px;
+      font-weight: 900;
+    }
+
+    .code,
+    .prompt {
+      margin: 0;
+      white-space: pre-wrap;
+      border: 1px solid rgba(103, 199, 255, 0.28);
+      border-radius: 16px;
+      background: #06101d;
+      color: #eef6ff;
+      font-family: Consolas, "Cascadia Code", monospace;
+      line-height: 1.34;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .code {
+      padding: 18px;
+      font-size: clamp(15px, 1.25vw, 19px);
+    }
+
+    .prompt {
+      padding: 22px;
+      font-size: clamp(18px, 1.7vw, 24px);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid rgba(84, 230, 173, 0.32);
+      border-radius: 999px;
+      background: rgba(84, 230, 173, 0.11);
+      color: #dcfff0;
+      font-size: clamp(15px, 1.35vw, 20px);
+      font-weight: 800;
+    }
+
+    .callout {
+      border-left: 7px solid var(--warn);
+      border-radius: 16px;
+      background: rgba(255, 209, 102, 0.12);
+      padding: 20px 24px;
+      color: var(--ink);
+      font-size: clamp(23px, 2.35vw, 34px);
+      line-height: 1.18;
+      font-weight: 900;
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    .blue {
+      color: var(--accent-2);
+    }
+
+    .warn {
+      color: var(--warn);
+    }
+
+    .controls {
+      justify-content: space-between;
+    }
+
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-button {
+      min-width: 104px;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--ink);
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .nav-button.primary {
+      background: var(--accent);
+      color: #062217;
+      border-color: transparent;
+    }
+
+    .nav-button:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    .dots {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.26);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .dot.is-active {
+      width: 34px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        min-height: 100vh;
+        padding: 14px;
+      }
+
+      .deck {
+        width: calc(100vw - 28px);
+        min-height: 720px;
+        aspect-ratio: auto;
+        max-height: none;
+      }
+
+      .slide,
+      .slide.two {
+        grid-template-columns: 1fr;
+        padding: 30px 22px;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
+        text-align: center;
+      }
+
+      .topbar,
+      .controls {
+        width: 100%;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="../src/VsDebugBridge.VisualStudioExtension/Resources/debug-lens-icon.png" alt="">
+        <span>AI Code Lens</span>
+      </div>
+      <div class="counter" id="counter">Slide 1 of 11</div>
+    </header>
+
+    <main class="stage" aria-live="polite">
+      <section class="deck" aria-label="AI Code Lens silent walkthrough">
+        <article class="slide two is-active">
+          <div class="stack">
+            <p class="eyebrow">Product walkthrough</p>
+            <h1>AI Code Lens</h1>
+            <p class="lead">A local bridge between Visual Studio debugging and AI coding agents.</p>
+            <div class="pill-row">
+              <span class="pill">Visual Studio extension</span>
+              <span class="pill">Local MCP server</span>
+              <span class="pill">C# / .NET MVP</span>
+            </div>
+          </div>
+          <div class="panel preview">
+            <img src="../src/VsDebugBridge.VisualStudioExtension/Resources/debug-lens-preview.png" alt="AI Code Lens product preview">
+            <p class="text">The assistant can use real debugger context, not only pasted source code.</p>
+          </div>
+        </article>
+
+        <article class="slide">
+          <div class="stack">
+            <p class="eyebrow">The problem</p>
+            <h2>AI assistants usually debug with missing context.</h2>
+            <ul class="bullets">
+              <li class="bullet">They cannot see where Visual Studio is paused.</li>
+              <li class="bullet">They cannot inspect live variables or the call stack.</li>
+              <li class="bullet">They miss exceptions, build errors, and Output window details.</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="slide two">
+          <div class="stack">
+            <p class="eyebrow">Why this exists</p>
+            <h2>Debugging needs runtime evidence.</h2>
+            <p class="lead">AI Code Lens gives the agent the same facts a developer checks during a real debugging session.</p>
+          </div>
+          <div class="panel">
+            <ul class="cards">
+              <li class="card">Current file and line</li>
+              <li class="card">Selected stack frame</li>
+              <li class="card">Live locals and exception details</li>
+              <li class="card">Build errors and recent output</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="slide two">
+          <div class="stack">
+            <p class="eyebrow">How it works</p>
+            <h2>The bridge stays local.</h2>
+            <p class="lead">A Visual Studio extension talks to a local MCP server. The AI agent calls MCP tools to request debugger context.</p>
+          </div>
+          <div class="panel diagram">
+            <div class="flow">
+              <div class="node">AI Agent</div>
+              <div class="arrow">-></div>
+              <div class="node">Local MCP Server</div>
+              <div class="arrow">-></div>
+              <div class="node">Visual Studio Extension</div>
+            </div>
+            <p class="text">The MVP uses local stdio MCP and a named pipe to Visual Studio.</p>
+          </div>
+        </article>
+
+        <article class="slide center">
+          <div class="stack">
+            <p class="eyebrow">Demo part 1</p>
+            <h2>Now the demo opens Visual Studio.</h2>
+            <p class="lead">The extension is installed, and a C# project is ready for debugging.</p>
+            <div class="callout">Next screen: Visual Studio extension and sample code.</div>
+          </div>
+        </article>
+
+        <article class="slide two">
+          <div class="stack">
+            <p class="eyebrow">Install and configure</p>
+            <h2>Three setup steps.</h2>
+            <pre class="code"><code>.\scripts\setup.ps1 -InstallVsix
+
+# First tool after setup
+VisualStudioBridgeHealthCheck</code></pre>
+          </div>
+          <div class="panel">
+            <ol class="steps">
+              <li class="step">
+                <span class="num">1</span>
+                <span>Install the VSIX<span class="meta">Restart Visual Studio after installation.</span></span>
+              </li>
+              <li class="step">
+                <span class="num">2</span>
+                <span>Add the MCP server<span class="meta">Use the agent's MCP configuration file.</span></span>
+              </li>
+              <li class="step">
+                <span class="num">3</span>
+                <span>Run health check<span class="meta">Confirm discovery and pipe reachability.</span></span>
+              </li>
+            </ol>
+          </div>
+        </article>
+
+        <article class="slide two">
+          <div class="stack">
+            <p class="eyebrow">MCP configuration</p>
+            <h2>Point the AI agent to the local server.</h2>
+            <p class="lead">For development, the MCP server can run with <span class="accent">dotnet run</span>.</p>
+          </div>
+          <div class="panel">
+            <pre class="code"><code>[mcp_servers.vs_debug_bridge]
+command = "dotnet"
+args = [
+  "run",
+  "--project",
+  "PATH_TO_MCP_SERVER_CSPROJ"
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 60</code></pre>
+            <p class="text">For packaged use, point to the installed MCP server instead.</p>
+          </div>
+        </article>
+
+        <article class="slide">
+          <div class="stack">
+            <p class="eyebrow">Safety boundary</p>
+            <h2>Read first. Act only with approval.</h2>
+            <div class="cards">
+              <div class="card"><span class="accent">Health check</span> verifies the bridge.</div>
+              <div class="card"><span class="accent">Debug snapshot</span> reads live debugger evidence.</div>
+              <div class="card"><span class="warn">Step, continue, and breakpoint tools</span> require explicit approval.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="slide center">
+          <div class="stack">
+            <p class="eyebrow">Demo part 2</p>
+            <h2>Now the demo debugs a real bug.</h2>
+            <p class="lead">The AI agent will inspect the live Visual Studio session, step line by line, find the error, and suggest the smallest fix.</p>
+            <div class="callout">Next screen: AI agent prompt and live debugger actions.</div>
+          </div>
+        </article>
+
+        <article class="slide">
+          <div class="stack">
+            <p class="eyebrow">Prompt used in the demo</p>
+            <h2>Ask the agent to use AI Code Lens.</h2>
+            <div class="prompt">Attach to my current Visual Studio debug session using AI Code Lens.
+
+First run the bridge health check.
+Then read the current debug snapshot.
+Explain where the code is paused, which variable is wrong, and why the bug happens.
+Step line by line only after I approve it.
+Finally show the smallest code fix.</div>
+          </div>
+        </article>
+
+        <article class="slide two">
+          <div class="stack">
+            <p class="eyebrow">Final message</p>
+            <h2>AI Code Lens turns debugger evidence into AI context.</h2>
+            <p class="lead">Less manual explanation. Better answers. Local bridge. Controlled debug actions.</p>
+          </div>
+          <div class="panel">
+            <ul class="bullets">
+              <li class="bullet">The AI sees the real paused state.</li>
+              <li class="bullet">The fix is based on runtime values.</li>
+              <li class="bullet">The developer stays in control.</li>
+            </ul>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="controls">
+      <div class="nav-group">
+        <button class="nav-button" id="prev" type="button">Back</button>
+        <button class="nav-button primary" id="next" type="button">Next</button>
+      </div>
+      <div class="dots" id="dots" aria-label="Slide navigation"></div>
+      <div class="hint">Use Arrow keys, Space, or Page Up / Page Down</div>
+    </footer>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const dots = document.getElementById("dots");
+    const counter = document.getElementById("counter");
+    const prev = document.getElementById("prev");
+    const next = document.getElementById("next");
+    let index = 0;
+
+    function getInitialIndex() {
+      const querySlide = new URLSearchParams(window.location.search).get("slide");
+      const hashSlide = window.location.hash.replace("#slide-", "").replace("#", "");
+      const requested = Number(querySlide || hashSlide);
+
+      if (Number.isFinite(requested) && requested > 0) {
+        return requested - 1;
+      }
+
+      return 0;
+    }
+
+    slides.forEach((slide, slideIndex) => {
+      slide.setAttribute("aria-hidden", slideIndex === 0 ? "false" : "true");
+      const dot = document.createElement("button");
+      dot.className = "dot";
+      dot.type = "button";
+      dot.setAttribute("aria-label", `Go to slide ${slideIndex + 1}`);
+      dot.addEventListener("click", () => show(slideIndex));
+      dots.appendChild(dot);
+    });
+
+    function show(nextIndex) {
+      index = Math.max(0, Math.min(nextIndex, slides.length - 1));
+
+      slides.forEach((slide, slideIndex) => {
+        const active = slideIndex === index;
+        slide.classList.toggle("is-active", active);
+        slide.setAttribute("aria-hidden", active ? "false" : "true");
+      });
+
+      Array.from(dots.children).forEach((dot, dotIndex) => {
+        dot.classList.toggle("is-active", dotIndex === index);
+      });
+
+      counter.textContent = `Slide ${index + 1} of ${slides.length}`;
+      prev.disabled = index === 0;
+      next.disabled = index === slides.length - 1;
+
+      if (window.location.hash !== `#slide-${index + 1}`) {
+        history.replaceState(null, "", `#slide-${index + 1}`);
+      }
+    }
+
+    prev.addEventListener("click", () => show(index - 1));
+    next.addEventListener("click", () => show(index + 1));
+
+    document.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        show(index + 1);
+      }
+
+      if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        show(index - 1);
+      }
+
+      if (event.key === "Home") {
+        event.preventDefault();
+        show(0);
+      }
+
+      if (event.key === "End") {
+        event.preventDefault();
+        show(slides.length - 1);
+      }
+    });
+
+    show(getInitialIndex());
+  </script>
+</body>
+</html>

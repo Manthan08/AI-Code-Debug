@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>VsDebugBridge.VisualStudioExtension</AssemblyName>
+    <TargetName>$(AssemblyName)</TargetName>
+    <Version>0.5.2</Version>
+    <AssemblyVersion>0.5.2.0</AssemblyVersion>
+    <FileVersion>0.5.2.0</FileVersion>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <UseWPF>false</UseWPF>
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>true</IncludeDebugSymbolsInVSIXContainer>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <DeployExtension>false</DeployExtension>
+    <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">17.0</VisualStudioVersion>
+    <VSToolsPath>$(NuGetPackageRoot)microsoft.vssdk.buildtools\17.14.2142\tools</VSToolsPath>
+    <OutputPath>bin\$(Configuration)\$(TargetFramework)\</OutputPath>
+    <OutDir>$(MSBuildProjectDirectory)\$(OutputPath)</OutDir>
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == ''">obj\$(Configuration)\</IntermediateOutputPath>
+    <CreatePkgDefAssemblyToProcess>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).dll</CreatePkgDefAssemblyToProcess>
+    <TargetVsixContainerName>AIDebugLens.vsix</TargetVsixContainerName>
+    <UseCodebase>true</UseCodebase>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="source.extension.vsixmanifest">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VsDebugBridge.Contracts\VsDebugBridge.Contracts.csproj" />
+    <ProjectReference Include="..\VsDebugBridge.Ipc\VsDebugBridge.Ipc.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <VSIXSourceItem Include="$(OutDir)Newtonsoft.Json.dll">
+      <VSIXSubPath></VSIXSubPath>
+    </VSIXSourceItem>
+    <VSIXSourceItem Include="Resources\debug-lens-icon.png">
+      <VSIXSubPath>Resources</VSIXSubPath>
+    </VSIXSourceItem>
+    <VSIXSourceItem Include="Resources\debug-lens-preview.png">
+      <VSIXSubPath>Resources</VSIXSubPath>
+    </VSIXSourceItem>
+  </ItemGroup>
+
+  <Import Project="$(VSToolsPath)\vssdk\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\vssdk\Microsoft.VsSDK.targets')" />
+
+</Project>

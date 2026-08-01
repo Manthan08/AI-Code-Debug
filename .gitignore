@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+*.suo
+*.vsix
+.vs/
+.codex/
+artifacts/
+TestResults/
+*.zip
+*.nupkg

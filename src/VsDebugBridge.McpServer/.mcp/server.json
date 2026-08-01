@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "description": "Read-only Visual Studio debugger context for Codex.",
+  "name": "local/vs-debug-bridge",
+  "version": "0.5.2-beta",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "VsDebugBridge.McpServer",
+      "version": "0.5.2-beta",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [],
+      "environmentVariables": []
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/YOUR_GITHUB_USER_OR_ORG/ai-debug-lens",
+    "source": "github"
+  }
+}

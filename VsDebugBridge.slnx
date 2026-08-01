@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VsDebugBridge.Contracts/VsDebugBridge.Contracts.csproj" />
+    <Project Path="src/VsDebugBridge.Ipc/VsDebugBridge.Ipc.csproj" />
+    <Project Path="src/VsDebugBridge.McpServer/VsDebugBridge.McpServer.csproj" />
+    <Project Path="src/VsDebugBridge.VisualStudioExtension/VsDebugBridge.VisualStudioExtension.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VsDebugBridge.Tests/VsDebugBridge.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/DebugSample/DebugSample.csproj" />
+  </Folder>
+</Solution>
